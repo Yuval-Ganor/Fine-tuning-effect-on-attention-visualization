@@ -1,4 +1,5 @@
 # 046211-Fine-tuning-effect-on-attention-visualization
+Comparing the attention visualization of pre-trained ViT classifications on sports images before and after fine-tuning.
 
 # Project documentation
 ## Topics
@@ -22,7 +23,7 @@ A simple method, Taylor Decomposition, produces explanations by performing a Tay
 ![image](https://github.com/user-attachments/assets/1080a40a-77f5-4010-b2cc-ee2156b969c6)
 
 First-order terms (elements of the sum) quantify the relevance of each input feature to the prediction, and form the explanation. Although simple and straightforward, this method is unstable when applied to deep neural networks.
-In LRP, we propagating the prediction f(x) backward in the neural network, by means of purposely designed local propagation rules.
+In LRP, we are propagating the prediction f(x) backward in the neural network, by means of purposely designed local propagation rules.
 Let j and k be neurons at two consecutive layers of the neural network. Propagating relevance scores $(R_k )_k$ at a given layer onto neurons of the lower layer is achieved by applying the rule:
 
 ![image](https://github.com/user-attachments/assets/70a1d165-43e8-4a22-84fe-29b3844bbcc2)
@@ -58,7 +59,7 @@ The goal of this project is to compare attention-based visualizations of classif
 ## Method
 In this work, we compute relevancy for Transformer networks. The method assigns local relevance based on the Deep Taylor Decomposition principle and then propagates these relevancy scores through the layers. <br>
 The method employs LRP-based relevance to compute scores for each attention head in each layer of a Transformer model. It then integrates these scores throughout the attention graph, by incorporating both relevancy and gradient information, in a way that iteratively removes the negative contributions. The result is a class-specific visualization for self-attention models. <br>
-Relevance and gradient diffusion: Let's consider a Transformer model M consisting of B blocks, where each block b is composed of self-attention, skip connections, and additional linear and normalization layers in a certain assembly. The model takes as an input a sequence of s tokens, each of dimension d, with a special token for classification, commonly identified as the token [CLS].M outputs a classification probability vector y of length C, computed using the classification token. The self-attention module operates on a small sub-space $d_h$ of the embedding dimension d, where h is the number of “heads”, such that $hd_h$ = d. The self-attention module is defined as follows: <br>
+**Relevance and gradient diffusion:** Let's consider a Transformer model M consisting of B blocks, where each block b is composed of self-attention, skip connections, and additional linear and normalization layers in a certain assembly. The model takes as an input a sequence of s tokens, each of dimension d, with a special token for classification, commonly identified as the token [CLS].M outputs a classification probability vector y of length C, computed using the classification token. The self-attention module operates on a small sub-space $d_h$ of the embedding dimension d, where h is the number of “heads”, such that $hd_h$ = d. The self-attention module is defined as follows: <br>
 ![image](https://github.com/user-attachments/assets/abe1a991-35a8-4651-8dcc-5a38b4abbfef) <br>
 where (·) denotes matrix multiplication, $O(b) ∈R^{h×s×d_h}$ is the output of the attention module in block b, $Q^b,K^b,V^b∈R^{h×s×d_h}$ are the query key and value inputs in block b, namely, different projections of an input x(n) for a self-attention module. <br>
 $A^b∈R^{h×s×s}$ is the attention map of block b, where row i represents the attention coefficients of each token in the input with respect to the token i.<br>
