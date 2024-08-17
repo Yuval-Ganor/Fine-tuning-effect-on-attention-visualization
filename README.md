@@ -1,12 +1,11 @@
-# 046211-LoRA-Compression
-@oamsalemd, @idob8 - Winter 2024
+![image](https://github.com/user-attachments/assets/dc74dfc7-b8de-4c28-8c44-9bd4c542ee82)# 046211-Fine-tuning-effect-on-attention-visualization
 
 
 # Project documentation
 ## Topics
 * Introduction
-  * Compression
-  * LoRA
+  * LRP
+  * LoRA & DoRA
 * Project goal
 * Method
 * Experiments and results
@@ -14,104 +13,102 @@
 * Future work
 * How to run
 * Ethics Statement
+* Credits
 
 ## Introduction
-## Compression
-Compressing pre-trained neural networks reduces memory usage, speeds up inference, and enables deployment on resource-constrained devices. It optimizes model efficiency, real-time performance, and energy consumption, making deep learning models more practical for diverse computing environments.
-We tested multiple model compression methods that can potentially achieve better computational usage, and tested their effect on the pre-trained model.
+## LRP (Layer-wise Relevance Propagation)
+For a machine learning model to generalize well, one needs to ensure that its decisions are supported by meaningful patterns in the input data. A prerequisite is however for the model to be able to explain itself, e.g. by highlighting which input features it uses to support its prediction. Layer-wise Relevance Propagation (LRP) is a technique that brings such explainability and scales to potentially highly complex deep neural networks. It operates by propagating the prediction backward in the neural network, using a set of purposely designed propagation rules.
+A simple method, Taylor Decomposition, produces explanations by performing a Taylor expansion of the prediction f(x) at some nearby reference point x&#771;:
 
-Data type Quantization - in this method we use more compact data type to store the model weights. this technique can potentially save memory (capacity and bandwidth).
+![image](https://github.com/user-attachments/assets/1080a40a-77f5-4010-b2cc-ee2156b969c6)
 
-Sparsity - in this method we use "sparse" weight matrices, for any given block we allow only 1 cell to have non zero value. This technique can potentially save memory (capacity and bandwidth) and also reduce the number of effective multiplication instructions.
+First-order terms (elements of the sum) quantify the relevance of each input feature to the prediction, and form the explanation. Although simple and straightforward, this method is unstable when applied to deep neural networks.
+In LRP, we propagating the prediction f(x) backward in the neural network, by means of purposely designed local propagation rules.
+Let j and k be neurons at two consecutive layers of the neural network. Propagating relevance scores $(R_k )_k$ at a given layer onto neurons of the lower layer is achieved by applying the rule:
 
-On the other hand, both methods can potentially damage the accuracy of the model and might demand retraining the model.
-![image](https://github.com/oamsalemd/046211-LoRA-Quantization/assets/93587192/0a81b8df-d8a0-41f7-aae2-f8175b3e05b5)
+![image](https://github.com/user-attachments/assets/70a1d165-43e8-4a22-84fe-29b3844bbcc2)
 
+The quantity $z_{jk}$ models the extent to which neuron j has contributed to make neuron k relevant. The denominator serves to enforce the conservation property. The propagation procedure terminates once the input features have been reached.
+
+![image](https://github.com/user-attachments/assets/1e95b862-5dc5-4e13-989c-3aa699a8358e)
 
 
 ## LoRA
-LoRA (Low Rank Adaptation) is a technique for efficiently fine-tune pre-trained models. The basic idea is to train only a low-rank matrix that will be added the pretrained weight matrix.<sup>[1]</sup>
-Previous works have shown the benefits of LoRA in transfer-learning for pre-trained LLM-s.<sup>[1]</sup>
-- Given a 'Linear' layer `W` of `in_dimXout_dim`, we choose low rank `r` s.t. `r < in_dim, out_dim`.
-- We freeze the `W` matrix, so it remains intact while re-training the model.
-- The matrices `A` (of `in_dimXr`) and `B` (of `rXout_dim`) are initialized.
-- We set the new activation to be `h=x@(W+a*A@B)` for the input `x` (of `1Xin_dim`), and a factor `a`.
-- During training, only `A` and `B` matrices are learned.
+LoRA (Low-Rank Adaptation) is a method for fine-tuning a pre-trained model by modifying a small portion of its parameters. This approach enables the efficient adaptation of large models to specific tasks, and minimizing the computational expense and time needed for fine-tuning.
+In LoRA, instead of updating all of the weights of a given weight matrix $W∈R^{d_i×d_o}$, we are only learning a low rank approximation of the of the update ΔW:
 
-![image](https://github.com/oamsalemd/046211-LoRA-Quantization/assets/93587192/6a492711-a3e1-4a4c-8188-b746ff88c304)
+AB≈ΔW
+
+Where $A∈R^{d_i×r},B∈R^{r×d_o}$ and $r≪d_i,d_o$ is the rank.
+
+![image](https://github.com/user-attachments/assets/a0bc736e-fb41-45af-ba3f-595a8ddfcf23)
+
+## DoRA
+DoRA (Decomposed Low-Rank Adaptation) builds on the LoRA method by leveraging the principle that any vector can be decomposed into its magnitude and direction. In DoRA, instead of fine-tuning the weights directly, they are split into two components:
+- Magnitude: the size or scale of the weights
+- Direction: the orientation or direction of the weights
+
+This decomposition is applied to the entire weight matrix, with each column representing the connections from all inputs to a specific output neuron. The directional matrix is calculated as $V=\frac{W+AB}{||W+AB||}$, where W is the original weight matrix and AB is the low-rank adaptation. Standard LoRA is then applied to obtain the updated weights as $W_{updated}=m⋅\frac{W+AB}{||W+AB||}$, where m is the scaling factor.
+
+![image](https://github.com/user-attachments/assets/31819291-d92d-4680-9758-02506dde45f9)
+
 
 ## Project goal
-Our objective is to combine model compression with LoRA in pre-trained models, to optimize model size with minimal damaging to model accuracy and minimal retraining.  We test the method's efficacy for image classification tasks.
+The goal of this project is to compare attention-based visualizations of classifications made by a Transformer-based model for vision tasks, both before and after fine-tuning. The objective is to understand how fine-tuning impacts the importance of tokens in the model's classification process.
 
 ## Method
-- We used ‘resnet18’ pre-trained on ImageNet1K<sup>[2]</sup>
-  - For training we used only a small subset of the original dataset (50,000 images out of 1,281,167)
-- The compression methods we tested were:
-  - Data type quantization to int1.
-  - Sparsity with block size of 4X4.
-- The compression was implemented only on the FC layer of the model.
-- Given:
-  
-![image](https://github.com/oamsalemd/046211-LoRA-Quantization/assets/65858567/679812a8-4fe4-48d7-bd50-0e2503dd48f8)
+In this work, we compute relevancy for Transformer networks. The method assigns local relevance based on the Deep Taylor Decomposition principle and then propagates these relevancy scores through the layers. <br>
+The method employs LRP-based relevance to compute scores for each attention head in each layer of a Transformer model. It then integrates these scores throughout the attention graph, by incorporating both relevancy and gradient information, in a way that iteratively removes the negative contributions. The result is a class-specific visualization for self-attention models. <br>
+Relevance and gradient diffusion: Let's consider a Transformer model M consisting of B blocks, where each block b is composed of self-attention, skip connections, and additional linear and normalization layers in a certain assembly. The model takes as an input a sequence of s tokens, each of dimension d, with a special token for classification, commonly identified as the token [CLS].M outputs a classification probability vector y of length C, computed using the classification token. The self-attention module operates on a small sub-space $d_h$ of the embedding dimension d, where h is the number of “heads”, such that $hd_h$ = d. The self-attention module is defined as follows: <br>
+![image](https://github.com/user-attachments/assets/abe1a991-35a8-4651-8dcc-5a38b4abbfef) <br>
+where (·) denotes matrix multiplication, $O(b) ∈R^{h×s×d_h}$ is the output of the attention module in block b, $Q^b,K^b,V^b∈R^{h×s×d_h}$ are the query key and value inputs in block b, namely, different projections of an input x(n) for a self-attention module. <br>
+$A^b∈R^{h×s×s}$ is the attention map of block b, where row i represents the attention coefficients of each token in the input with respect to the token i.<br>
+Following the propagation procedure of relevance and gradients, each attention map $A^b$ has its gradients ${∇A}^b$, and relevance $R^{n_b}$ , with respect to a target class t, where $n_b$ is the layer that corresponds to the softmax operation of block b, and $R^{n_b}$ is the layer’s relevance. The final output $C ∈R^{s×s}$ of the method is then defined by the weighted attention relevance:<br>
+![image](https://github.com/user-attachments/assets/b68a44b1-effc-4bf4-96fc-912be55459b7)<br>
+Where ⊙ is the Hadamard product, and $E_h$ is the mean across the “heads” dimension, and $R^{n_b}$ defined as: <br>
+![image](https://github.com/user-attachments/assets/18166adf-a3e0-4790-81a9-3cfb8c62336a)<br>
+where we consider only the elements that have a positive weighed relevance (q).
 
- compression ratio was calculated as follows:
-  
-Memory and instructions compression ratio for Sparse 4X4 method:
+Obtaining the image relevance map: The resulting explanation of our method is a matrix C of size s×s, where s represents the sequence length of the input fed to the Transformer. Each row corresponds to a relevance map for each token given the other tokens. Since the work focuses on classification models, only the [CLS] token, which encapsulates the explanation of the classification, is considered. The relevance map is, therefore, derived from the row $C_{[CLS]} ∈R^s$ that corresponds to the [CLS] token. This row contains a score evaluating each token’s influence on the classification token. <br>
+In vision models, such as ViT we used for our project, the content tokens represent image patches. To obtain the final relevance map, we reshape the sequence to the patches grid size. for a square image, the patch grid size is $\sqrt{s-1}× \sqrt{s-1}$. This map is upsampled back to the size of the original image using bilinear interpolation.
 
-![image](https://github.com/oamsalemd/046211-LoRA-Quantization/assets/65858567/2f248040-9a91-405e-b75d-53c43240c787)
+![image](https://github.com/user-attachments/assets/bacfd6c2-286f-405d-8d0e-6f192a94214b)
 
-
-Memory compression ratio for INT1 quantization method:
-
-![image](https://github.com/oamsalemd/046211-LoRA-Quantization/assets/65858567/20834b6b-64cc-4209-ac5a-06d7eae87899)
-
-
-- We tested the appending of LoRA layer of ranks: [2, 4, 8, 16, 32, 64, 128].
-  - We tested 2 initialization methods. The first was the initialization suggested in the original LoRA paper, A is initialized as N(0,\sigma^2) and B=0. The second one was SVD decomposition of the diff from original matrix.
-- All model's parameters except LoRA parameters were frozen. LoRA parameters were trained for 10 epochs and the best epoch was chosen (in terms of accuracy on the validation set).
-- Hyper parameters were chosen for each rank separately using Optuna:
-  - Optimizer, learning rate, batch size, "alpha" factor (LoRA)
-- Finally we evaluated the accuracy on a test set for each LoRA rank and for each initialization method.
 
 ## Experiments and results
-![image](https://github.com/oamsalemd/046211-LoRA-Quantization/assets/65858567/e4624ea2-bbb6-4d4d-9305-3864e6ba2c0c)
+In this experiment, we investigated the impact of fine-tuning using DoRA on local relevance, comparing it to traditional feature extraction through attention visualization. We employed a pre-trained Vision Transformer (ViT) model, which was initially trained on a diverse range of datasets, including ImageNet, CIFAR-100, and VTAB, encompassing various content types.<br>
+We began by applying feature extraction with the pre-trained ViT model to adapt it to our specific dataset, which consists of images from several sports categories, spanning 100 classes. The results from this feature extraction process are detailed below:<br>
+The accuracy of the validation set: 97.4%.
 
-![image](https://github.com/oamsalemd/046211-LoRA-Quantization/assets/65858567/b7d380f9-00d7-43b7-a43c-f1a5049e9a11)
+![image](https://github.com/user-attachments/assets/8b74e7ae-777a-4744-acb3-689fdf5edbbf)
 
-![image](https://github.com/oamsalemd/046211-LoRA-Quantization/assets/65858567/1466a3f9-4466-4c0d-8820-2b422d493bc5)
+Next, we applied DoRA to the pre-trained model, supplementing the regular feature extraction process. The results obtained using DoRA are outlined below:<br>
+The accuracy of the validation set: 97.2%.
 
+![image](https://github.com/user-attachments/assets/196ca573-28f2-40d9-a359-36bb7f284356)
 
-We expected the graph to be monotonically ascending. One potential explanation for their instability could be that the training hyper-parameters choice has a big effect on the model’s test accuracy. Even though increasing the LoRA rank increases the number parameters in the model, we could not always set the training hyper-parameters for the model to be optimized for the task and produce better accuracy.
-
-For Sparse 4X4 compression, we can see that increasing the LoRA rank generally improves the model accuracy for the test set.
-For LoRA rank of 128 with SVD initialization, the experiment showed just 1.74% accuracy drop, with ×2.27 compression ratio.
-
-For INT1 quantization, small LoRA ranks have shown significant improvement compared to the quantized-only model’s test accuracy. Unlike Sparse 4X4 compression, we could not see an improvement in the model’s accuracy for larger LoRA ranks.
- The best accuracy drop was for LoRA rank of 128 with paper-suggested initialization. The experiment showed 5.01% accuracy drop, with ×2.44 memory compression ratio.
-The best trade-off was for LoRA rank of 2 with paper-suggest initialization. The experiment showed 5.98% accuracy drop, with ×26.91 memory compression ratio.
-
-SVD decomposition initialization showed better and more stable results for Sparse 4X4 compression. For INT1 quantization, this initialization method did not improve the results compared to the paper-suggested initialization.
+We observed several noteworthy points:
+* Improved class prediction with feature extraction: Our predictions for the relevant class depicted in the image were more accurate when using feature extraction
+* Similarity in visual attention with DoRA: The visual attention maps generated with DoRA exhibited similar patterns across different classes (both the actual class and a randomly selected alternative)
+* 	Noise in attention maps with feature extraction: When using feature extraction, the visual attention for the incorrect class (not the actual one) included noise, highlighting irrelevant areas of the image
+* 	 lightly better validation score with feature extraction: The validation accuracy was marginally higher when using feature extraction compared to DoRA
 
 
 ## Conclusions
-1.	Increasing LoRA rank generally gives better accuracy, yet not matching the original model’s accuracy.
-2.	Training the LoRA parameters requires minor computation effort.
-3.	The combination of all LoRA ranks with compression methods that were tested results in memory compression, while sparsity method also results in computation reduction.
-4.	LoRA training is unstable and very prone to hyper-parameters modification.
-5.	Using initialization with SVD decomposition could provide in better results.
+Based on our findings, we propose the following conclusions:
+The use of DoRA may lead to overfitting compared to feature extraction, as evidenced by the slightly lower validation score and the reduced noise in the attention maps for irrelevant classes. The fact that DoRA involves learning more weights than feature extraction suggests that our dataset might be too small to capture the true attention relevance for each class effectively.
+While DoRA highlights meaningful parts of the image, such as people and the ball, these relevant features appear consistently across different classes. In contrast, with feature extraction, the meaningful parts vary between classes, though this also introduces more noise when visualizing irrelevant classes.
 
 ## Future work
-We believe that our project shows potential for further research of the benefits from combining model compression methods with LoRA.
-We believe such research could be done with:
-- Test the method’s performance for ‘Linear’-rich models (e.g. Transformers, MLP-based, …)
-- Explore more compression hyper-parameters (e.g. int8, sparse 3X3, ...)
-- Explore more initialization methods for the LoRA matrices
-- Apply the method for DoRA<sup>[3]</sup> variation and examine results
+-	Expand to additional datasets: Extend our study to include a broader range of datasets to validate the generalizability of our findings.
+-	Explore alternative fine-tuning methods: Investigate different fine-tuning techniques to further optimize model performance and understand their impact on attention-based visualizations.
+-	Deepen understanding of the attention matrix: Conduct a more in-depth analysis of how the attention matrix influences the model's predictions, potentially uncovering new insights into the decision-making process of Transformer-based models.
+
 
 
 
 # How to run
-
+**need to complete**
 ## Environments settings
 1. Clone to a new directory:
   `git clone <URL> <DEST_DIR>`
@@ -146,24 +143,10 @@ Description:
 
 
 # Ethics Statement
-### Stakeholders
-End-users, deep learning researchers, technology companies, and regulatory bodies.
-### Implications
-End-users can benefit from faster and more efficient image classification models, improving user experience. However, there may be concerns about privacy if sensitive information is processed.
-Deep learning researchers can advance the field with innovative techniques, but they must ensure fairness and transparency in model development and deployment.
-Technology companies can enhance product performance and reduce resource consumption, yet they need to address potential biases and ensure responsible AI practices.
-Regulatory bodies play a crucial role in establishing guidelines and standards to protect user rights, promote fairness, and mitigate risks associated with AI technologies.
-### Ethical Considerations
-Prioritizing user privacy and data protection through robust security measures and transparent data handling practices.
-Mitigating biases in data and algorithms to ensure fairness and equity in classification outcomes.
-Providing clear explanations and documentation on the use of quantization and LoRA techniques to enhance model transparency and interpretability.
-Engaging in ongoing dialogue with stakeholders and regulatory bodies to address ethical concerns, promote responsible AI practices, and uphold societal values in AI development and deployment.
+?
 
-
-
-
-> <sup>[1]</sup> Hu, Edward J., et al. “Lora: Low-rank adaptation of large language models.” arXiv preprint arXiv:2106.09685 (2021).
-
-> <sup>[2]</sup> https://huggingface.co/timm/resnet18.tv_in1k
-
-> <sup>[3]</sup> Liu, Shih-Yang, et al. "DoRA: Weight-Decomposed Low-Rank Adaptation." arXiv preprint arXiv:2402.09353 (2024).
+# Credits
+- LRP - https://iphome.hhi.de/samek/pdf/MonXAI19.pdf
+- Hila Chefer:
+  * Transformer-Explainability - https://github.com/hila-chefer/Transformer-Explainability 
+  * Robust-ViT - https://github.com/hila-chefer/RobustViT
