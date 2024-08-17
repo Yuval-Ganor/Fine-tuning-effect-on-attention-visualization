@@ -1,5 +1,4 @@
-![image](https://github.com/user-attachments/assets/dc74dfc7-b8de-4c28-8c44-9bd4c542ee82)# 046211-Fine-tuning-effect-on-attention-visualization
-
+# 046211-Fine-tuning-effect-on-attention-visualization
 
 # Project documentation
 ## Topics
