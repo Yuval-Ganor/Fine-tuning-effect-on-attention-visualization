@@ -56,6 +56,9 @@ This decomposition is applied to the entire weight matrix, with each column repr
 ## Project goal
 The goal of this project is to compare attention-based visualizations of classifications made by a Transformer-based model for vision tasks, both before and after fine-tuning. The objective is to understand how fine-tuning impacts the importance of tokens in the model's classification process.
 
+## Dataset
+The dataset we used for our project consists of images from 100 sports categories and was taken from: https://www.kaggle.com/datasets/gpiosenka/sports-classification
+
 ## Method
 In this work, we compute relevancy for Transformer networks. The method assigns local relevance based on the Deep Taylor Decomposition principle and then propagates these relevancy scores through the layers. <br>
 The method employs LRP-based relevance to compute scores for each attention head in each layer of a Transformer model. It then integrates these scores throughout the attention graph, by incorporating both relevancy and gradient information, in a way that iteratively removes the negative contributions. The result is a class-specific visualization for self-attention models. <br>
@@ -150,3 +153,4 @@ Description:
 - Hila Chefer:
   * Transformer-Explainability - https://github.com/hila-chefer/Transformer-Explainability 
   * Robust-ViT - https://github.com/hila-chefer/RobustViT
+- Dataset - https://www.kaggle.com/datasets/gpiosenka/sports-classification
