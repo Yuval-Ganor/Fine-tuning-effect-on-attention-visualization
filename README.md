@@ -111,7 +111,8 @@ While DoRA highlights meaningful parts of the image, such as people and the ball
 
 
 # How to run
-**need to complete**
+
+
 ## Environments settings
 1. Clone to a new directory:
   `git clone <URL> <DEST_DIR>`
@@ -144,9 +145,6 @@ Description:
   * `quant=COMP_TYPE_r=RANK_eval_acc=ACCUR.ckpt`: model post-training parameters, for COMP_TYPE (`sparse`, `int1`), for RANK (LoRA rank), with test accuracy of ACCUR
   * `quant=COMP_TYPE_r=RANK_optimization_history.html`: Optuna trials summary for COMP_TYPE (`sparse`, `int1`) and RANK (LoRA rank) hyper-parameter tuning
 
-
-# Ethics Statement
-?
 
 # Credits
 - LRP - https://iphome.hhi.de/samek/pdf/MonXAI19.pdf
